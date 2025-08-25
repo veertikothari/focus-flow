@@ -12,7 +12,7 @@ import {
   addDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Phone, MessageSquareText, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 // Define TypeScript interfaces
@@ -149,23 +149,6 @@ export const Dashboard = () => {
     }
   };
 
-  const getUserPhone = (id: string): (string | null)[] => {
-    if (!id) return [];
-    const userIds = id.split(',').filter(uid => uid.trim());
-    return userIds
-      .map(uid => {
-        const user = users.find(u => u.id === uid);
-        return user?.phone || null;
-      })
-      .filter(phone => phone !== null);
-  };
-
-  const getContactDetails = (id: string): { name: string; phone: string | null } => {
-    const contact = contacts.find((c) => c.id === id);
-    return contact
-      ? { name: contact.name || 'No name', phone: contact.phone || null }
-      : { name: 'None', phone: null };
-  };
 
   const getContactName = (id: string): string => {
     if (!id) return 'None';
@@ -180,8 +163,6 @@ export const Dashboard = () => {
     return names.length > 0 ? names.join(', ') : 'None';
   };
 
-  const getContactPhone = (id: string): string | null => getContactDetails(id).phone;
-
   const getDueStatus = (dueDate: string): string => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -194,31 +175,10 @@ export const Dashboard = () => {
     return '#4b5563'; // gray
   };
 
-  const getStartStatus = (startDate: string): string => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const taskDate = new Date(startDate);
-    const diffTime = taskDate.getTime() - today.getTime();
-    const diffDays = diffTime / (1000 * 60 * 60 * 24);
-    if (diffTime < 0) return '#dc2626'; // red
-    if (diffDays === 0) return '#d97706'; // amber
-    if (diffDays <= 2) return '#2563eb'; // blue
-    return '#4b5563'; // gray
-  };
-
 
   const hasUserLoggedTime = (task: Task): boolean => {
     if (!task.timeLogs || !userId) return false;
     return task.timeLogs.some((log) => log.userId === userId);
-  };
-
-  const formatWhatsAppMessage = (task: Task): string => {
-    const parts = [
-      task.title || 'No title',
-      task.description || 'No description',
-      task.links || 'No link',
-    ];
-    return parts.join(' - ');
   };
 
   const formatExpectedTime = (minutes: number): string => {
@@ -427,240 +387,143 @@ export const Dashboard = () => {
     }
   };
 
-  const handleAddTask = () => navigate('/tasks');
+  
+if (loading) return <div className="p-6 text-center text-gray-500">Loading tasks...</div>;
+if (error) return <div className="p-6 text-center text-red-600">{error}</div>;
 
-  if (loading) return <div style={{ padding: '24px', color: '#6b7280', textAlign: 'center' }}>Loading tasks...</div>;
-  if (error) return <div style={{ padding: '24px', color: '#dc2626', textAlign: 'center' }}>{error}</div>;
 
-  return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f1f5f9', padding: '16px' }}>
-      <div style={{ maxWidth: '1580px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#1e293b', marginBottom: '16px' }}>
-          Hi, {name || 'User'}
-        </h1>
-        <h3 style={{ fontSize: '18px', fontWeight: '500', color: '#475569', marginBottom: '24px' }}>
-          It always seems impossible until it's done.
-        </h3>
-        <div style={{ maxHeight: '700px', overflowY: 'auto', paddingRight: '8px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#1e293b' }}>
-              Tasks <span style={{ fontSize: '14px', color: '#64748b' }}>({filteredTasks.length})</span>
-            </h3>
-            <button
-              onClick={handleAddTask}
-              style={{
-                color: '#2563eb',
-                fontSize: '14px',
-                fontWeight: '500',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'color 0.2s',
-              }}
-              onMouseOver={(e) => e.currentTarget.style.color = '#1d4ed8'}
-              onMouseOut={(e) => e.currentTarget.style.color = '#2563eb'}
-            >
-              + Add
-            </button>
-          </div>
-          {filteredTasks.map((task) => (
-            <div
-              key={task.id}
-              style={{
-                backgroundColor: '#ffffff',
-                borderRadius: '8px',
-                padding: '16px',
-                marginBottom: '16px',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                borderLeft: `4px solid ${getDueStatus(task.dueDate)}`,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b', marginBottom: '8px' }}>
-                    {task.title}
-                  </h4>
-                  <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
-                    Due: {new Date(task.dueDate).toLocaleDateString()} | Start: {new Date(task.startDate).toLocaleDateString()} |{' '}
-                    Expected Time: {formatExpectedTime(task.expectedMinutes)} |{' '}
-                    Status: {task.status.charAt(0).toUpperCase() + task.status.slice(1)} |{' '}
-                    Priority: {task.priority} |{' '}
-                    Assigned to: {getUserName(task.assignedUserId)} |{' '}
-                    Contact: {getContactName(task.referenceContactId || '')}
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#64748b' }}>
-                    Created by: {task.createdByEmail}
-                  </div>
+return (
+  <div className="min-h-screen bg-gray-100 p-4">
+    <div className="max-w-7xl mx-auto">
+      <h1 className="text-2xl font-semibold text-gray-900 mb-4">
+        Hi, {name || 'User'}
+      </h1>
+      <h3 className="text-lg font-medium text-gray-600 mb-6">
+        It always seems impossible until it's done.
+      </h3>
+      <div className="max-h-[700px] overflow-y-auto pr-2">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold text-gray-900">
+            Tasks <span className="text-sm text-gray-500">({filteredTasks.length})</span>
+          </h3>
+        </div>
+        {filteredTasks.map((task) => (
+          <div
+            key={task.id}
+            className="bg-white rounded-lg p-4 mb-4 shadow-sm border-l-4"
+            style={{ borderLeftColor: getDueStatus(task.dueDate) }}
+          >
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                  {task.title}
+                </h4>
+                <div className="text-sm text-gray-600 mb-2">
+                  Due: {new Date(task.dueDate).toLocaleDateString()} | Start: {new Date(task.startDate).toLocaleDateString()} |{' '}
+                  Expected Time: {formatExpectedTime(task.expectedMinutes)} |{' '}
+                  Status: {task.status.charAt(0).toUpperCase() + task.status.slice(1)} |{' '}
+                  Priority: {task.priority} |{' '}
+                  Assigned to: {getUserName(task.assignedUserId)} |{' '}
+                  Contact: {getContactName(task.referenceContactId || '')}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <select
-                    value={task.status}
-                    onChange={(e) => updateTaskStatus(task.id, e.target.value)}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      border: '1px solid #d1d5db',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      placeholder="Min"
-                      value={timeInputs[task.id] || ''}
-                      onChange={(e) => handleTimeInputChange(task.id, e.target.value)}
-                      style={{
-                        padding: '4px',
-                        borderRadius: '4px',
-                        border: '1px solid #d1d5db',
-                        width: '60px',
-                      }}
-                    />
-                    <button
-                      onClick={() => handleSubmitTime(task.id)}
-                      disabled={hasUserLoggedTime(task)}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        backgroundColor: hasUserLoggedTime(task) ? '#9ca3af' : '#2563eb',
-                        color: '#ffffff',
-                        border: 'none',
-                        cursor: hasUserLoggedTime(task) ? 'not-allowed' : 'pointer',
-                        transition: 'background-color 0.2s',
-                      }}
-                      onMouseOver={(e) => !hasUserLoggedTime(task) && (e.currentTarget.style.backgroundColor = '#1d4ed8')}
-                      onMouseOut={(e) => !hasUserLoggedTime(task) && (e.currentTarget.style.backgroundColor = '#2563eb')}
-                    >
-                      Log
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setExpandedTasks((prev) => {
-                        const newSet = new Set(prev);
-                        if (newSet.has(task.id)) {
-                          newSet.delete(task.id);
-                        } else {
-                          newSet.add(task.id);
-                        }
-                        return newSet;
-                      });
-                    }}
-                    style={{
-                      padding: '4px',
-                      border: 'none',
-                      background: 'none',
-                      cursor: 'pointer',
-                      color: '#2563eb',
-                      transition: 'transform 0.2s',
-                      transform: expandedTasks.has(task.id) ? 'rotate(180deg)' : 'rotate(0deg)',
-                    }}
-                  >
-                    <ChevronDown size={16} />
-                  </button>
+                <div className="text-sm text-gray-600">
+                  Created by: {task.createdByEmail}
                 </div>
               </div>
-              {expandedTasks.has(task.id) && (
-                <div style={{ marginTop: '16px' }}>
-                  <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
-                    Description: {task.description || 'No description'}
-                  </p>
-                  <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
-                    Links: <a href={task.links || '#'} style={{ color: '#2563eb' }}>{task.links || 'No link'}</a>
-                  </p>
-                  {task.referenceContactId && (
-                    <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
-                      Contact Phone:{' '}
-                      {getUserPhone(task.referenceContactId).map((phone, index) => (
-                        <span key={index}>
-                          {phone && (
-                            <span>
-                              <a href={`tel:${phone}`} style={{ color: '#2563eb', marginRight: '8px' }}>
-                                <Phone size={14} />
-                              </a>
-                              <a
-                                href={`https://wa.me/${phone}?text=${encodeURIComponent(formatWhatsAppMessage(task))}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ color: '#22c55e', marginRight: '8px' }}
-                              >
-                                <MessageSquareText size={14} />
-                              </a>
-                            </span>
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div>
-                    <input
-                      type="text"
-                      value={newComments[task.id] || ''}
-                      onChange={(e) => setNewComments((prev) => ({ ...prev, [task.id]: e.target.value }))}
-                      placeholder="Add a comment..."
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        borderRadius: '4px',
-                        border: '1px solid #d1d5db',
-                        marginBottom: '8px',
-                      }}
-                    />
-                    <button
-                      onClick={() => handleAddComment(task.id)}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: '4px',
-                        backgroundColor: '#2563eb',
-                        color: '#ffffff',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s',
-                      }}
-                      onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#1d4ed8')}
-                      onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#2563eb')}
-                    >
-                      Add Comment
-                    </button>
-                  </div>
-                  {comments[task.id] && comments[task.id].length > 0 && (
-                    <div style={{ marginTop: '16px' }}>
-                      <h5 style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '8px' }}>
-                        Comments
-                      </h5>
-                      {comments[task.id].map((comment) => (
-                        <div
-                          key={comment.id}
-                          style={{
-                            backgroundColor: '#f1f5f9',
-                            padding: '8px',
-                            borderRadius: '4px',
-                            marginBottom: '8px',
-                          }}
-                        >
-                          <p style={{ fontSize: '14px', color: '#64748b' }}>
-                            {comment.comment} -{' '}
-                            {getUserName(comment.userId) || 'Unknown User'} on{' '}
-                            {comment.createdAt.toDate().toLocaleString()}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-2 mt-2 md:mt-0">
+                <select
+                  value={task.status}
+                  onChange={(e) => updateTaskStatus(task.id, e.target.value)}
+                  className="p-2 rounded-md border border-gray-300 cursor-pointer w-full md:w-auto"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="Min"
+                    value={timeInputs[task.id] || ''}
+                    onChange={(e) => handleTimeInputChange(task.id, e.target.value)}
+                    className="p-2 rounded-md border border-gray-300 w-full md:w-20"
+                  />
+                  <button
+                    onClick={() => handleSubmitTime(task.id)}
+                    disabled={hasUserLoggedTime(task)}
+                    className={`p-2 rounded-md text-white border-none cursor-pointer transition-colors ${
+                      hasUserLoggedTime(task) ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                  >
+                    Log
+                  </button>
                 </div>
-              )}
+                <button
+                  onClick={() => {
+                    setExpandedTasks((prev) => {
+                      const newSet = new Set(prev);
+                      if (newSet.has(task.id)) newSet.delete(task.id);
+                      else newSet.add(task.id);
+                      return newSet;
+                    });
+                  }}
+                  className="p-1 border-none bg-transparent text-blue-600 cursor-pointer transition-transform"
+                  style={{ transform: expandedTasks.has(task.id) ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                >
+                  <ChevronDown size={16} />
+                </button>
+              </div>
             </div>
-          ))}
-        </div>
+            {expandedTasks.has(task.id) && (
+              <div className="mt-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Description: {task.description || 'No description'}
+                </p>
+                <p className="text-sm text-gray-600 mb-2">
+                  Links: <a href={task.links || '#'} className="text-blue-600">{task.links || 'No link'}</a>
+                </p>
+                <div>
+                  <input
+                    type="text"
+                    value={newComments[task.id] || ''}
+                    onChange={(e) => setNewComments((prev) => ({ ...prev, [task.id]: e.target.value }))}
+                    placeholder="Add a comment..."
+                    className="w-full p-2 rounded-md border border-gray-300 mb-2"
+                  />
+                  <button
+                    onClick={() => handleAddComment(task.id)}
+                    className="p-2 rounded-md bg-blue-600 text-white border-none cursor-pointer hover:bg-blue-700 transition-colors"
+                  >
+                    Add Comment
+                  </button>
+                </div>
+                {comments[task.id] && comments[task.id].length > 0 && (
+                  <div className="mt-4">
+                    <h5 className="text-sm font-semibold text-gray-900 mb-2">Comments</h5>
+                    {comments[task.id].map((comment) => (
+                      <div
+                        key={comment.id}
+                        className="bg-gray-100 p-2 rounded-md mb-2"
+                      >
+                        <p className="text-sm text-gray-600">
+                          {comment.comment} -{' '}
+                          {getUserName(comment.userId) || 'Unknown User'} on{' '}
+                          {comment.createdAt.toDate().toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default Dashboard;
